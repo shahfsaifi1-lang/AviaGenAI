@@ -1,0 +1,70 @@
+# T-6II Texan II Documentation Catalog
+
+## Aircraft Information
+aircraft_info:
+  aircraft: "T-6II Texan II"
+  type: "Military trainer aircraft"
+  manufacturer: "Beechcraft (now Textron Aviation)"
+  purpose: "Primary flight training"
+
+## Documentation Categories
+
+checklists:
+  - "Pre-flight inspection"
+  - "Engine start procedures"
+  - "Taxi procedures"
+  - "Takeoff checklist"
+  - "Cruise procedures"
+  - "Landing checklist"
+  - "Post-flight procedures"
+  - "Emergency procedures"
+
+operations:
+  - "Flight planning"
+  - "Navigation procedures"
+  - "Communication protocols"
+  - "Weather considerations"
+  - "Performance data"
+  - "Limitations"
+
+maintenance:
+  - "Daily inspections"
+  - "Periodic maintenance"
+  - "Troubleshooting guides"
+  - "Parts catalogs"
+  - "Service bulletins"
+  - "Technical specifications"
+
+## Document Registry
+
+docs:
+  - id: t6_flight_training_v1
+    title: "Beechcraft T-6B Texan II Flight Training Instructions"
+    file: "corpus/t6ii_checklists/519613250-Beechcraft-T-6B-Texan-II-Flight-Training-Instructions.pdf"
+    type: "flight_manual"
+    source: "beechcraft/official"
+    date: "2024-01-01"
+    restrictions: "public"
+    pages: 17013
+    description: "Complete flight training instructions including checklists, procedures, and operational data"
+  - id: t6_chk_basic_v1
+    title: "T-6 II Basic Normal Checklists (training aid)"
+    file: "corpus/t6ii_checklists/basic_checklist.pdf"
+    type: "checklist"
+    source: "personal/training-aid"
+    date: "2025-10-01"
+    restrictions: "public_or_personal"
+  - id: t6_ops_preflight_v1
+    title: "T-6 II Pre-flight Brief Reference (training aid)"
+    file: "corpus/t6ii_ops/preflight_brief_ref.pdf"
+    type: "ops_guide"
+    source: "personal/training-aid"
+    date: "2025-10-01"
+    restrictions: "public_or_personal"
+
+## Metadata
+metadata:
+  last_updated: "2025-01-01"
+  version: "1.1"
+  status: "Active"
+  classification: "Unclassified"
