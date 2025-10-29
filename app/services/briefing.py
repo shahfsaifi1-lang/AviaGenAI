@@ -6,7 +6,7 @@ from app.api.schemas import (
     PrelimsData, EnvironmentData, MissionData, CoordinatingInstructions,
     ExecutionData, ActionsOnData, SummaryData
 )
-from app.services.weather.manager import weather_manager
+from app.services.weather import get_taf_metar
 
 class T6BriefingService:
     """Service for managing T-6II pre-flight briefings"""
@@ -23,7 +23,7 @@ class T6BriefingService:
         # Auto-fill weather data if requested
         environment_data = None
         if request.auto_fill_weather:
-            weather_data = await weather_manager.fetch_weather(request.icao)
+            weather_data = await get_taf_metar(request.icao)
             environment_data = EnvironmentData(
                 met={
                     "wind": "Auto-filled from weather service",

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.api.schemas import WeatherRequest, WeatherResponse, WeatherAnalysisRequest, WeatherAnalysisResponse
-from app.services.weather.manager import weather_manager
+from app.services.weather import get_taf_metar, get_minute
 from app.services.llm_client import chat_completion
 
 router = APIRouter()
@@ -8,7 +8,18 @@ router = APIRouter()
 @router.get("/weather/providers")
 async def get_weather_providers():
     """Get information about configured weather providers"""
-    providers = weather_manager.get_provider_info()
+    from app.core.config import settings
+    providers = []
+    
+    # Check CheckWX (via MetServiceProvider)
+    if settings.CHECKWX_API_KEY:
+        providers.append("CheckWX: configured")
+    else:
+        providers.append("CheckWX: not configured")
+    
+    # MET Norway is always available
+    providers.append("MET Norway: available (free)")
+    
     return {
         "providers": providers,
         "count": len(providers)
@@ -18,14 +29,10 @@ async def get_weather_providers():
 async def get_weather(req: WeatherRequest):
     """Get current weather data (METAR/TAF) for an airport"""
     try:
-        result = await weather_manager.fetch_weather(req.icao)
+        result = await get_taf_metar(req.icao)
         
-        # Determine which provider was used
-        provider_name = "Unknown"
-        if result.metar_raw or result.taf_raw:
-            # Check which provider succeeded
-            if weather_manager.providers and len(weather_manager.providers) > 0:
-                provider_name = weather_manager.providers[0].__class__.__name__
+        # Determine which provider was used based on data availability
+        provider_name = "CheckWX" if (result.metar_raw or result.taf_raw) else "MET Norway"
         
         return WeatherResponse(
             icao=result.icao,
@@ -43,7 +50,7 @@ async def analyze_weather(req: WeatherAnalysisRequest):
     """Get weather data and AI analysis for aviation decision making"""
     try:
         # Get weather data
-        weather_result = await weather_manager.fetch_weather(req.icao)
+        weather_result = await get_taf_metar(req.icao)
         
         # Create weather response
         weather_response = WeatherResponse(
