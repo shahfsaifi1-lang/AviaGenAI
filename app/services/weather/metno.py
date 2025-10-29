@@ -1,42 +1,20 @@
+import os
 import httpx
-from typing import Optional
 from app.services.weather.base import WeatherProvider, TafMetar
-from app.core.config import settings
 
-class MetNoProvider(WeatherProvider):
-    """MET Norway weather provider (free, public API)"""
-    
-    def __init__(self):
-        self.base_url = "https://api.met.no/weatherapi/tafmetar/1.0"
-        self.headers = {
-            "User-Agent": settings.METNO_USER_AGENT,
-            "Accept": "application/json"
-        }
-    
+UA = os.getenv("METNO_USER_AGENT", "AviaGenAI/0.1 (contact: you@example.com)")
+
+class MetNoTafMetarProvider(WeatherProvider):
+    BASE = "https://api.met.no/weatherapi/tafmetar/1.0"
+
     async def fetch_taf_metar(self, icao: str) -> TafMetar:
-        """Fetch TAF and METAR data from MET Norway"""
-        try:
-            async with httpx.AsyncClient() as client:
-                # Fetch METAR
-                metar_url = f"{self.base_url}/metar/{icao}"
-                metar_response = await client.get(metar_url, headers=self.headers)
-                metar_raw = ""
-                if metar_response.status_code == 200:
-                    data = metar_response.json()
-                    if data and len(data) > 0:
-                        metar_raw = data[0].get("rawMETAR", "")
-                
-                # Fetch TAF
-                taf_url = f"{self.base_url}/taf/{icao}"
-                taf_response = await client.get(taf_url, headers=self.headers)
-                taf_raw = ""
-                if taf_response.status_code == 200:
-                    data = taf_response.json()
-                    if data and len(data) > 0:
-                        taf_raw = data[0].get("rawTAF", "")
-                
-                return TafMetar(icao=icao, metar_raw=metar_raw, taf_raw=taf_raw)
-                
-        except Exception as e:
-            print(f"Error fetching weather from MET Norway: {e}")
-            return TafMetar(icao=icao, metar_raw="", taf_raw="")
+        headers = {"User-Agent": UA, "Accept": "text/plain"}
+        metar_raw, taf_raw = None, None
+        async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
+            m = await client.get(f"{self.BASE}/metar.txt", params={"icao": icao})
+            if m.status_code == 200:
+                metar_raw = m.text
+            t = await client.get(f"{self.BASE}/taf.txt", params={"icao": icao})
+            if t.status_code == 200:
+                taf_raw = t.text
+        return TafMetar(icao, metar_raw, taf_raw)
