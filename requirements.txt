@@ -12,4 +12,3 @@ pyarrow
 pyyaml
 numpy
 avwx-engine
-avwx
