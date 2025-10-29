@@ -1,0 +1,14 @@
+phases:
+  preflight:
+    - "Documents: licence, medical, weight & balance summary (training)."
+    - "Walk-around highlights: props, inlets, pitot-static covers removed."
+    - "Fuel & oil checks per training-aid."
+  before_start:
+    - "Seat/straps secure, pins accounted for, hatches closed."
+    - "Circuit breakers set; avionics protected."
+  after_start:
+    - "Engine indications in limits; avionics on; radios set."
+  before_takeoff:
+    - "Controls free/correct; trim set; flaps per SOP; briefing complete."
+  after_landing:
+    - "Clear runway; flaps up; after-landing flow; taxi brief."
