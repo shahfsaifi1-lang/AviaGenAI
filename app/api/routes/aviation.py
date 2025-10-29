@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from app.services.aviation_helpers import wind_components, density_altitude
+from app.services.decision_engine import analyze_weather
 from typing import Optional
 
 router = APIRouter()
@@ -113,3 +114,69 @@ async def analyze_runway_conditions(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/aviation/decision-analysis")
+async def get_decision_analysis(
+    icao: str = Query(..., min_length=4, max_length=4, description="Airport ICAO code"),
+    runway_deg: float = Query(..., description="Runway heading in degrees"),
+    pressure_alt_ft: float = Query(0, description="Pressure altitude in feet (default: 0)"),
+    oat_c: float = Query(None, description="Outside air temperature in Celsius (optional)")
+):
+    """Get comprehensive weather decision analysis for T-6II operations."""
+    try:
+        import asyncio
+        from app.services.weather.select import get_taf_metar
+        from app.services.weather.decode import decode_metar
+        
+        # Get current weather with timeout
+        try:
+            weather = await asyncio.wait_for(get_taf_metar(icao), timeout=10.0)
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=408, detail="Weather data request timed out")
+        
+        if not weather.metar_raw:
+            raise HTTPException(status_code=404, detail="No current weather data available")
+        
+        # Decode METAR
+        metar_data = decode_metar(weather.metar_raw)
+        
+        # Use temperature from METAR if not provided
+        if oat_c is None and "temperature" in metar_data:
+            oat_c = metar_data["temperature"]["temp_c"]
+        elif oat_c is None:
+            oat_c = 15  # Default ISA temperature
+        
+        # Get decision analysis
+        analysis = analyze_weather(metar_data, runway_deg, pressure_alt_ft, oat_c)
+        
+        # Add T-6II specific recommendations
+        recommendations = []
+        if analysis["category"] == "VFR":
+            recommendations.append("✅ VFR conditions suitable for T-6II training")
+        elif analysis["category"] == "MVFR":
+            recommendations.append("⚠️ Marginal VFR - proceed with caution, consider alternatives")
+        elif analysis["category"] in ["IFR", "LIFR"]:
+            recommendations.append("❌ IFR conditions - not suitable for VFR training")
+        
+        if analysis["wind_components"]["crosswind_kt"] is not None:
+            crosswind = abs(analysis["wind_components"]["crosswind_kt"])
+            if crosswind > 10:
+                recommendations.append(f"⚠️ High crosswind {crosswind:.1f} kt - consider different runway")
+            elif crosswind > 5:
+                recommendations.append(f"⚠️ Moderate crosswind {crosswind:.1f} kt - extra caution required")
+            else:
+                recommendations.append(f"✅ Crosswind {crosswind:.1f} kt within normal limits")
+        
+        if analysis["density_altitude_ft"] > 3000:
+            recommendations.append(f"⚠️ High density altitude {analysis['density_altitude_ft']} ft - expect reduced performance")
+        
+        analysis["t6_recommendations"] = recommendations
+        analysis["icao"] = icao
+        analysis["runway_heading_deg"] = runway_deg
+        
+        return analysis
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Decision analysis failed: {str(e)}")
