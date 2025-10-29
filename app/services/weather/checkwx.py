@@ -3,22 +3,21 @@ from typing import Optional
 from app.services.weather.base import WeatherProvider, TafMetar
 from app.core.config import settings
 
-class MetServiceProvider(WeatherProvider):
-    """MetService NZ weather provider (Aviation API)"""
+class CheckWXProvider(WeatherProvider):
+    """CheckWX API weather provider (METAR/TAF data)"""
     
     def __init__(self):
-        self.api_key = settings.METSERVICE_API_KEY
-        # MetService NZ Aviation API base URL (for METAR/TAF data)
-        self.base_url = "https://api.metservice.com/aviation"
+        self.api_key = settings.CHECKWX_API_KEY
+        self.base_url = "https://api.checkwx.com"
         self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "X-API-Key": self.api_key,
             "Accept": "application/json"
         }
     
     async def fetch_taf_metar(self, icao: str) -> TafMetar:
-        """Fetch TAF and METAR data from MetService NZ Aviation API"""
+        """Fetch TAF and METAR data from CheckWX API"""
         if not self.api_key:
-            print("MetService NZ not configured - missing API key")
+            print("CheckWX not configured - missing API key")
             return TafMetar(icao=icao, metar_raw="", taf_raw="")
         
         try:
@@ -29,7 +28,8 @@ class MetServiceProvider(WeatherProvider):
                 metar_raw = ""
                 if metar_response.status_code == 200:
                     data = metar_response.json()
-                    metar_raw = data.get("rawMETAR", "")
+                    if data.get("results", 0) > 0 and data.get("data"):
+                        metar_raw = data["data"][0]  # Get the first METAR
                 
                 # Fetch TAF data
                 taf_url = f"{self.base_url}/taf/{icao}"
@@ -37,10 +37,11 @@ class MetServiceProvider(WeatherProvider):
                 taf_raw = ""
                 if taf_response.status_code == 200:
                     data = taf_response.json()
-                    taf_raw = data.get("rawTAF", "")
+                    if data.get("results", 0) > 0 and data.get("data"):
+                        taf_raw = data["data"][0]  # Get the first TAF
                 
                 return TafMetar(icao=icao, metar_raw=metar_raw, taf_raw=taf_raw)
                 
         except Exception as e:
-            print(f"Error fetching weather from MetService NZ Aviation API: {e}")
+            print(f"Error fetching weather from CheckWX: {e}")
             return TafMetar(icao=icao, metar_raw="", taf_raw="")

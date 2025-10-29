@@ -1,5 +1,6 @@
 from typing import List, Optional
 from app.services.weather.base import WeatherProvider, TafMetar
+from app.services.weather.checkwx import CheckWXProvider
 from app.services.weather.metno import MetNoProvider
 from app.services.weather.metservice import MetServiceProvider
 from app.core.config import settings
@@ -10,7 +11,12 @@ class WeatherManager:
     def __init__(self):
         self.providers: List[WeatherProvider] = []
         
-        # Add MetService NZ first (if configured)
+        # Add CheckWX first (most reliable for aviation weather)
+        if settings.CHECKWX_API_KEY:
+            self.providers.append(CheckWXProvider())
+            print("✅ CheckWX provider configured")
+        
+        # Add MetService NZ (if configured)
         if settings.METSERVICE_API_KEY and settings.METSERVICE_BASE_URL:
             self.providers.append(MetServiceProvider())
             print("✅ MetService NZ provider configured")
@@ -40,7 +46,10 @@ class WeatherManager:
         """Get information about configured providers"""
         info = []
         for provider in self.providers:
-            if isinstance(provider, MetServiceProvider):
+            if isinstance(provider, CheckWXProvider):
+                status = "configured" if settings.CHECKWX_API_KEY else "not configured"
+                info.append(f"CheckWX: {status}")
+            elif isinstance(provider, MetServiceProvider):
                 status = "configured" if settings.METSERVICE_API_KEY else "not configured"
                 info.append(f"MetService NZ: {status}")
             elif isinstance(provider, MetNoProvider):

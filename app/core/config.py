@@ -26,6 +26,9 @@ class Settings:
     METSERVICE_METAR_PATH: str = os.getenv("METSERVICE_METAR_PATH", "/aviation/metar")
     METSERVICE_TAF_PATH: str = os.getenv("METSERVICE_TAF_PATH", "/aviation/taf")
     
+    # CheckWX API (reliable aviation weather)
+    CHECKWX_API_KEY: str = os.getenv("CHECKWX_API_KEY", "")
+    
     # MET Norway fallback
     METNO_USER_AGENT: str = os.getenv("METNO_USER_AGENT", "AviaGenAI/0.1 (contact: you@example.com)")
     
