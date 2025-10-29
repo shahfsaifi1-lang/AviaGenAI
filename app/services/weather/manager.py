@@ -1,6 +1,5 @@
 from typing import List, Optional
 from app.services.weather.base import WeatherProvider, TafMetar
-from app.services.weather.checkwx import CheckWXProvider
 from app.services.weather.metno import MetNoProvider
 from app.services.weather.metservice import MetServiceProvider
 from app.core.config import settings
@@ -11,15 +10,10 @@ class WeatherManager:
     def __init__(self):
         self.providers: List[WeatherProvider] = []
         
-        # Add CheckWX first (most reliable for aviation weather)
+        # Add CheckWX (via MetServiceProvider) first (most reliable for aviation weather)
         if settings.CHECKWX_API_KEY:
-            self.providers.append(CheckWXProvider())
-            print("✅ CheckWX provider configured")
-        
-        # Add MetService NZ (if configured)
-        if settings.METSERVICE_API_KEY and settings.METSERVICE_BASE_URL:
             self.providers.append(MetServiceProvider())
-            print("✅ MetService NZ provider configured")
+            print("✅ CheckWX provider configured")
         
         # Add MET Norway as fallback (always available)
         self.providers.append(MetNoProvider())
@@ -46,12 +40,9 @@ class WeatherManager:
         """Get information about configured providers"""
         info = []
         for provider in self.providers:
-            if isinstance(provider, CheckWXProvider):
+            if isinstance(provider, MetServiceProvider):
                 status = "configured" if settings.CHECKWX_API_KEY else "not configured"
                 info.append(f"CheckWX: {status}")
-            elif isinstance(provider, MetServiceProvider):
-                status = "configured" if settings.METSERVICE_API_KEY else "not configured"
-                info.append(f"MetService NZ: {status}")
             elif isinstance(provider, MetNoProvider):
                 info.append("MET Norway: available (free)")
         return info
